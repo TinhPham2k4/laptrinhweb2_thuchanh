@@ -1,0 +1,6 @@
+@laptrinhweb2_thuchanh_HostAddress = http://localhost:5015
+
+GET {{laptrinhweb2_thuchanh_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

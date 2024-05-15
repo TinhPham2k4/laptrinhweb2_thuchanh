@@ -1,5 +1,4 @@
-﻿using laptrinhweb2_thuchanh.Models;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace laptrinhweb2_thuchanh.Models.Domain
 {

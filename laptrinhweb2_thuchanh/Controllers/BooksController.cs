@@ -1,131 +1,78 @@
-﻿using laptrinhweb2_thuchanh.Models.Domain;
+﻿using laptrinhweb2_thuchanh.Models.DTO;
+using laptrinhweb2_thuchanh.Repositories;
+using laptrinhweb2_thuchanh.Data;
 using laptrinhweb2_thuchanh.Models.Domain;
-using laptrinhweb2_thuchanh.Services;
+using laptrinhweb2_thuchanh.Models.DTO;
+using laptrinhweb2_thuchanh.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace laptrinhweb2_thuchanh.Controllers
+namespace LapTrinhWebAPIBuoi1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
-        private readonly IBookstoreServices _BookService;
-        private readonly ILogger<BooksController> _logger; // Inject ILogger
+        // private readonly IBookstoreServices _BookService;
+        // private readonly ILogger<BooksController> _logger; // Inject ILogger
+        private readonly IBookRepository _bookRepository;
 
-        public BooksController(IBookstoreServices BookService, ILogger<BooksController> logger)
+        public BooksController(IBookRepository bookRepository)
         {
-            _BookService = BookService;
-            _logger = logger; // Inject ILogger
+
+            _bookRepository = bookRepository;
+            // _BookService = BookService;
+            //_logger = logger; // Inject ILogger
+        }
+        [HttpGet("get-all-books")]
+        public IActionResult GetAll()
+        {
+            var allBooks = _bookRepository.GetAllBooks();
+            return Ok(allBooks);
         }
         [HttpGet]
-        public async Task<IActionResult> GetAllBooks()
+        [Route("get-book-by-id/{id}")]
+        public IActionResult GetBookById([FromRoute] int id)
         {
-            try
+            var bookWithIdDTO = _bookRepository.GetBookById(id);
+            return Ok(bookWithIdDTO);
+        }
+        [HttpPost("and-book")]
+        // [ValidateModel]
+        [Authorize(Roles = "Write")]
+        public IActionResult AddBook([FromBody] AddBookRequestDTO addBookRequestDTO)
+        {
+            if (ModelState.IsValid)
             {
-                var book = await _BookService.GetAllBooks();
-                _logger.LogInformation($"Retrieved {book.Count} book from the database.");
-                return StatusCode(StatusCodes.Status200OK, book);
+                var bookAdd = _bookRepository.AddBook(addBookRequestDTO);
+                return Ok(bookAdd);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An error occurred while retrieving book: {ex.Message}"); // Ghi log
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving Publishers.");
-            }
+            else return BadRequest(ModelState);
         }
 
-        [HttpGet("id")]
-        public async Task<IActionResult> GetIdBooks(int id, bool includeBooks = false)
+        /*[HttpPost("add-book")]
+        public IActionResult AddBook([FromBody] AddBookRequestDTO addBookRequestDTO) 
+        { 
+            var bookAdd =_bookRepository.AddBook(addBookRequestDTO);
+            return Ok(bookAdd);
+        } */
+        [HttpPut("update-book-by-id/{id}")]
+        public IActionResult UpdateBookById(int id, [FromBody] AddBookRequestDTO bookDTO)
         {
-            try
-            {
-                Books book = await _BookService.GetIdBooks(id, includeBooks);
-                _logger.LogInformation($"Retrieved Name: {book.Title} book from the database.");
-                if (book == null)
-                {
-                    return StatusCode(StatusCodes.Status204NoContent, $"No Author found for id: {id}");
-                }
-                return StatusCode(StatusCodes.Status200OK, book);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An error occurred while retrieving book with ID {id}: {ex.Message}"); // Ghi log
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving student.");
-            }
+            var updateBook = _bookRepository.UpdateBookById(id, bookDTO);
+            return Ok(updateBook);
+        }
+
+        [HttpDelete("delete-book-by-id/{id}")]
+        public IActionResult DeleteBookById(int id)
+        {
+            var deleteBook = _bookRepository.DeleteBookById(id);
+            return Ok(deleteBook);
         }
 
 
-        [HttpPost]
-        public async Task<ActionResult<Books>> AddBooks(Books books)
-        {
-            try
-            {
-                var dbBooks = await _BookService.AddBooks(books);
-                if (dbBooks == null)
-                {
-                    _logger.LogError($"{books.Title} could not be added.");
-                    return StatusCode(StatusCodes.Status500InternalServerError, $"{books.Title} could not be added.");
-                }
-
-                _logger.LogInformation($"{books.Title} added successfully.");
-                return CreatedAtAction("GetBooks", new { id = books.BooksId }, books);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An error occurred while adding student: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding student.");
-            }
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBooks(int id, Books Books)
-        {
-            try
-            {
-                if (id != Books.PublishersId)
-                {
-                    return BadRequest();
-                }
-
-                Books dbBooks = await _BookService.UpdateBooks(Books);
-
-                if (dbBooks == null)
-                {
-                    _logger.LogError($"{Books.Title} could not be updated.");
-                    return StatusCode(StatusCodes.Status500InternalServerError, $"{Books.Title} could not be updated.");
-                }
-
-                _logger.LogInformation($"{Books.Title} updated successfully.");
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An error occurred while updating student: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating student.");
-            }
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBooks(int id)
-        {
-            try
-            {
-                var books = await _BookService.GetIdBooks(id, false);
-                (bool status, string message) = await _BookService.DeleteBooks(books);
-
-                if (status == false)
-                {
-                    _logger.LogError($"Error deleting student: {message}");
-                    return StatusCode(StatusCodes.Status500InternalServerError, message);
-                }
-
-                _logger.LogInformation($"Student with ID {id} deleted successfully.");
-                return StatusCode(StatusCodes.Status200OK, books);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An error occurred while deleting student with ID {id}: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting student.");
-            }
-        }
     }
 }

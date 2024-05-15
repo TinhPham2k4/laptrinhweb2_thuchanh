@@ -1,4 +1,5 @@
 ﻿using laptrinhweb2_thuchanh.Models.Domain;
+using laptrinhweb2_thuchanh.Models.DTO;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;
 
@@ -11,6 +12,8 @@ namespace laptrinhweb2_thuchanh.Data
         public DbSet<Books> Books { get; set; }
         public DbSet<Authors> Authors { get; set; }
         public DbSet<Book_Author> Books_Author { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.Entity<Book_Author>()
@@ -25,7 +28,8 @@ namespace laptrinhweb2_thuchanh.Data
                 .HasOne(bc => bc.Authors)
                 .WithMany(a => a.Book_Authors)
                 .HasForeignKey(bc => bc.AuthorsId);
-
+            builder.Entity<AddBookRequestDTO>()
+             .HasNoKey();
             new DbInitializer(builder).Seed();
         }
         public class DbInitializer
@@ -54,6 +58,7 @@ namespace laptrinhweb2_thuchanh.Data
                         PublishersId = 2,
                         Genre = "Nam"
                     }
+
                 );
 
                 _builder.Entity<Authors>().HasData(
